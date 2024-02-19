@@ -1,8 +1,5 @@
-import React, {
-  Suspense,
-  useState,
-} from "react";
-import {DeleteIcon, EditIcon } from "@chakra-ui/icons";
+import React, { Suspense, useState } from "react";
+import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import {
   Button,
   Checkbox,
@@ -24,13 +21,13 @@ import { Switch } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
 import AlertDialogBox from "../common/AlertDialog";
 import AddDepartmentModal from "../modal/AddDepartmentModal";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import axios from "axios";
 import GeneralSkeleton from "../common/GeneralSkeleton";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import ReactPaginate from "react-paginate";
-
+import { initialValues } from "../../utils/helper";
 
 const baseUrl = process.env.REACT_APP_BASE_URL;
 
@@ -38,25 +35,25 @@ const DepartmentList = () => {
   const deleteModal = useDisclosure();
   const addModal = useDisclosure();
   const [selectedDep, setSelectedDep] = useState(initialValues());
-  const [curPage, setCurPage] = useState(0);
+  const [curPage, setCurPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const {
     data: departments,
     error,
     isLoading,
+    mutate,
   } = useSWR(
     `${baseUrl}departments/index?page=${curPage}&limit=${limit}`,
     {
       suspense: true,
     },
   );
-  const [itemOffset, setItemOffset] = useState(0);
 
   const [checkedItems, setCheckedItems] = useState(
     departments?.data?.map(() => false),
   );
-  
 
   const [selectedIds, setSelectedIds] = useState([]);
 
@@ -65,27 +62,19 @@ const DepartmentList = () => {
   const isShowDeleteBtn =
     (checkedItems.length > 0 ? allChecked : false) || isIndeterminate;
 
-
-
   const handlePageClick = (event) => {
     let page = event.selected + 1;
     setCurPage(page);
-    const newOffset = (event.selected * 5) % departments.data.length;
-    setItemOffset(newOffset);
-
-    // mutate(`${baseUrl}departments/index?page=2`);
   };
 
   const handleDelete = async () => {
-    if (error) return <p>Error loading data</p>;
-    if (isLoading) return <GeneralSkeleton />;
-
     try {
       if (allChecked || isIndeterminate) {
         let allIds = departments.data.map((x) => x.id);
         let ids = { ids: selectedIds.length > 0 ? selectedIds : allIds };
 
         await axios.post(`${baseUrl}departments/destroy-ids`, ids);
+
         setCheckedItems(
           departments.data.length > 0
             ? departments.data.map(() => false)
@@ -93,13 +82,13 @@ const DepartmentList = () => {
         );
         setSelectedIds([]);
       } else {
-        const response = await axios.post(
+        await axios.post(
           `${baseUrl}departments/destroy/${selectedDep.id}`,
         );
       }
 
       // Invalidate the SWR cache for the specified endpoint
-      mutate(`${baseUrl}departments/index?page=${curPage}&limit=${limit}`);
+      mutate();
       setSelectedDep(initialValues());
 
       toast.success("Department deleted successfully");
@@ -107,17 +96,25 @@ const DepartmentList = () => {
       toast.error(err.message);
     }
   };
-  function initialValues() {
-    return { name: "", is_active: true };
-  }
+
   const handleChange = async (e, id) => {
     let data = { is_active: e.target.checked };
     try {
       await axios.post(`${baseUrl}departments/update-status/${id}`, data);
-      mutate(`${baseUrl}departments/index?page=${curPage}&limit=${limit}`);
+      mutate();
     } catch (e) {
       console.error("Error deleting data:", e);
     }
+  };
+
+  if (error) return <p>Error loading data</p>;
+  if (isLoading) return <GeneralSkeleton />;
+
+  const handleSearch = (e) => {
+    console.log(e.target.value);
+    mutate(
+      `${baseUrl}departments/index?search&query=${e.target.value}&page=1&limit=${limit}`,
+    );
   };
 
   return (
@@ -169,6 +166,7 @@ const DepartmentList = () => {
           <Spacer />
           {/* <Box>aa</Box> */}
           <Input
+            onChange={(e) => handleSearch(e)}
             borderRadius="5px"
             width="180px"
             focusBorderColor="blue.300"
@@ -274,18 +272,6 @@ const DepartmentList = () => {
             ))}
           </Tbody>
         </Table>
-        {/* <Flex justifyContent="space-between" m={4} alignItems="center">
-          <Flex>
-            <Tooltip label="First Page">
-              <IconButton
-                onClick={() => gotoPage(0)}
-                isDisabled={!canPreviousPage}
-                icon={<ArrowLeftIcon h={3} w={3} />}
-                mr={4}
-              />
-            </Tooltip>
-          </Flex>
-        </Flex> */}
         <Flex my={5} alignItems="center">
           <Text>
             Showing page {departments.current_page} of{" "}
@@ -316,6 +302,8 @@ const DepartmentList = () => {
       )}
       {createPortal(
         <AddDepartmentModal
+          limit={limit}
+          page={curPage}
           selectedDep={selectedDep}
           isOpen={addModal.isOpen}
           onClose={addModal.onClose}

@@ -42,7 +42,13 @@ const SaveBtnStyle = defineStyleConfig({
   },
 });
 
-const AddDepartmentModal = ({ isOpen, onClose, selectedDep }) => {
+const AddDepartmentModal = ({
+  isOpen,
+  onClose,
+  selectedDep,
+  page,
+  limit,
+}) => {
   const onSubmit = async (data) => {
     try {
       if (selectedDep.id) {
@@ -54,14 +60,11 @@ const AddDepartmentModal = ({ isOpen, onClose, selectedDep }) => {
         await axios.post(`${baseUrl}departments/store`, data);
       }
       // Invalidate the SWR cache for the specified endpoint
-      mutate(`${baseUrl}departments/index`);
-      // onClose();
-      window.location.reload();
-      setTimeout(() => {
-        toast.success("Deparment added successfully");
-      }, 3000);
+      mutate(`${baseUrl}departments/index?page=${page}&limit=${limit}`);
+      onClose();
+      toast.success("Deparment added successfully");
     } catch (error) {
-      console.error("Error occured");
+      toast.error(error.response.data.message);
     }
   };
 
@@ -75,7 +78,6 @@ const AddDepartmentModal = ({ isOpen, onClose, selectedDep }) => {
   });
 
   useEffect(() => {
-    console.log(selectedDep);
     if (selectedDep) {
       reset(selectedDep);
     }

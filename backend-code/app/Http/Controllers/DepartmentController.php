@@ -8,9 +8,17 @@ use PHPUnit\Framework\Attributes\Depends;
 class DepartmentController extends Controller
 {
     public function index(Request $request){
-        $limit = $request->input('limit'); 
+        $query = Department::orderBy('id', 'asc');
 
-        $departments = Department::orderBy('id', 'asc')->paginate($limit);
+        if ($request->has('search')) {
+            $name = $request->input('query');
+            if ($name) {
+                $query->where('name', 'like', '%' . $name . '%');
+            }
+        }
+
+        $limit = $request->input('limit', 10); // Default limit is 10
+        $departments = $query->paginate($limit);
         return response()->json($departments);
 
     }
