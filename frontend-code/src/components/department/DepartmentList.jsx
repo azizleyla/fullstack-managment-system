@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import {
   Button,
@@ -26,10 +26,38 @@ import axios from "axios";
 import GeneralSkeleton from "../common/GeneralSkeleton";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
+import {
+  Previous,
+  Paginator,
+  PageGroup,
+  Page,
+  Next,
+  generatePages,
+  Container,
+} from "chakra-paginator";
 import ReactPaginate from "react-paginate";
 import { initialValues } from "../../utils/helper";
 
 const baseUrl = process.env.REACT_APP_BASE_URL;
+
+const normalStyles = {
+  bg: "#fff",
+  borderRadius: 0,
+  border: "1px solid #e6ebf1",
+  padding: "0.65rem 0.95rem",
+};
+
+const activeStyles = {
+  ...normalStyles,
+  bg: "#3366FF",
+  color: "#fff",
+  _hover: {
+    bg: "#3366FF",
+  },
+};
+const seperatorStyles = {
+  bg: "#fff",
+};
 
 const DepartmentList = () => {
   const deleteModal = useDisclosure();
@@ -45,7 +73,11 @@ const DepartmentList = () => {
     isLoading,
     mutate,
   } = useSWR(
-    `${baseUrl}departments/index?page=${curPage}&limit=${limit}`,
+    `${baseUrl}departments/index?${
+      searchQuery
+        ? `search&query=${searchQuery}&page=${curPage}`
+        : `page=${curPage}`
+    }&limit=${limit}`,
     {
       suspense: true,
     },
@@ -62,11 +94,9 @@ const DepartmentList = () => {
   const isShowDeleteBtn =
     (checkedItems.length > 0 ? allChecked : false) || isIndeterminate;
 
-  const handlePageClick = (event) => {
-    let page = event.selected + 1;
+  const handlePageClick = (page) => {
     setCurPage(page);
   };
-
   const handleDelete = async () => {
     try {
       if (allChecked || isIndeterminate) {
@@ -87,7 +117,7 @@ const DepartmentList = () => {
         );
       }
 
-      // Invalidate the SWR cache for the specified endpoint
+      setCurPage(1);
       mutate();
       setSelectedDep(initialValues());
 
@@ -107,15 +137,13 @@ const DepartmentList = () => {
     }
   };
 
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    setCurPage(1);
+  };
+
   if (error) return <p>Error loading data</p>;
   if (isLoading) return <GeneralSkeleton />;
-
-  const handleSearch = (e) => {
-    console.log(e.target.value);
-    mutate(
-      `${baseUrl}departments/index?search&query=${e.target.value}&page=1&limit=${limit}`,
-    );
-  };
 
   return (
     <Suspense fallback={<p>Loading..</p>}>
@@ -278,16 +306,35 @@ const DepartmentList = () => {
             {departments.last_page}
           </Text>
           <Spacer />
-          <ReactPaginate
-            containerClassName={"pagination"}
-            breakLabel="..."
-            previousLabel={"Previous"}
-            nextLabel={"Next"}
-            onPageChange={handlePageClick}
-            pageRangeDisplayed={3}
-            pageCount={departments.last_page}
-            renderOnZeroPageCount={null}
-          />
+          <div className="pagination-container">
+            <Paginator
+              activeStyles={activeStyles}
+              currentPage={curPage}
+              // innerLimit={innerLimit}
+              // isDisabled={isPaginatorDisabled}
+              normalStyles={normalStyles}
+              onPageChange={handlePageClick}
+              // outerLimit={outerLimit}
+              pagesQuantity={departments.last_page}
+              separatorStyles={seperatorStyles}
+            >
+              <Previous
+                _hover={{ borderRadius: "0", bg: "#E2E8F0" }}
+                bg="white"
+                borderLeftRadius="0"
+              >
+                Previous
+                {/* Or an icon from `react-icons` */}
+              </Previous>
+              <PageGroup isInline align="center" />
+              <Next
+                _hover={{ borderRadius: "0", bg: "#E2E8F0" }}
+                bg="white"
+              >
+                Next
+              </Next>
+            </Paginator>
+          </div>
         </Flex>
       </TableContainer>
 
@@ -304,6 +351,7 @@ const DepartmentList = () => {
         <AddDepartmentModal
           limit={limit}
           page={curPage}
+          setCurPage={setCurPage}
           selectedDep={selectedDep}
           isOpen={addModal.isOpen}
           onClose={addModal.onClose}

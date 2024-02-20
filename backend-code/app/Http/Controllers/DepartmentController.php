@@ -13,7 +13,7 @@ class DepartmentController extends Controller
         if ($request->has('search')) {
             $name = $request->input('query');
             if ($name) {
-                $query->where('name', 'like', '%' . $name . '%');
+                $query->where('name', 'ILIKE', '%' . $name . '%');
             }
         }
 
@@ -34,7 +34,7 @@ class DepartmentController extends Controller
     
     public function store(Request $request){
         $data = $this->validate($request,[
-            'name'=>'required'
+            'name' => 'required|unique:departments,name'
         ]);
         $vars = array(
             'name'=>$data['name'],

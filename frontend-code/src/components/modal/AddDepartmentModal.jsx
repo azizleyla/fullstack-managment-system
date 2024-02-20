@@ -48,6 +48,7 @@ const AddDepartmentModal = ({
   selectedDep,
   page,
   limit,
+  setCurPage,
 }) => {
   const onSubmit = async (data) => {
     try {
@@ -62,9 +63,12 @@ const AddDepartmentModal = ({
       // Invalidate the SWR cache for the specified endpoint
       mutate(`${baseUrl}departments/index?page=${page}&limit=${limit}`);
       onClose();
+      setCurPage(1);
       toast.success("Deparment added successfully");
     } catch (error) {
-      toast.error(error.response.data.message);
+      if (error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      }
     }
   };
 

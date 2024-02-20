@@ -6,21 +6,9 @@ main {
     background-color: #F1F4FB;
 }
 
-.pagination {
-    align-items: center;
 
-    display: flex;
-    flex-direction: row;
-    height: 60px;
-    justify-content: center;
-    list-style-type: none;
-    position: relative;
 
-}
 
-.pagination-page {
-    font-weight: 700;
-}
 
 .pagination li a {
     padding: 0.65rem 0.95rem;
@@ -49,6 +37,16 @@ main {
 .pagination li.disabled {
     color: #ced4da;
 
+}
+
+.pagination-container ol {
+    gap: 0 !important;
+}
+
+.pagination-container {
+    display: flex;
+    gap: 0;
+    border: 1px solid #e6ebf1;
 }
 
 
