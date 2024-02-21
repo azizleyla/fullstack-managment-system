@@ -50,7 +50,21 @@ const AddDepartmentModal = ({
   limit,
   setCurPage,
 }) => {
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+  const [data, setData] = useState("");
+
   const onSubmit = async (data) => {
+    console.log(errors);
+    setData(data);
     try {
       if (selectedDep.id) {
         await axios.post(
@@ -64,28 +78,27 @@ const AddDepartmentModal = ({
       mutate(`${baseUrl}departments/index?page=${page}&limit=${limit}`);
       onClose();
       setCurPage(1);
+
       toast.success("Deparment added successfully");
+      setErrorMsg("");
     } catch (error) {
       if (error.response.data && error.response.data.message) {
-        toast.error(error.response.data.message);
+        setErrorMsg(error.response.data.message);
+      } else {
+        setErrorMsg("");
       }
     }
   };
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm({
-    resolver: yupResolver(schema),
-  });
 
   useEffect(() => {
     if (selectedDep) {
       reset(selectedDep);
     }
   }, [selectedDep]);
+
+  useEffect(() => {
+    setErrorMsg("");
+  }, [data.name]);
 
   return (
     <Modal
@@ -111,10 +124,12 @@ const AddDepartmentModal = ({
               control={control}
               render={({ field }) => <Input {...field} />}
             />
-            {errors.name ? (
-              <span class="error-msg">{errors.name.message}</span>
-            ) : null}
-
+            {errors.name && (
+              <span className="error-msg">{errors.name.message}</span>
+            )}
+            {errorMsg && !errors.name && (
+              <span className="error-msg">{errorMsg}</span>
+            )}
             <Controller
               name="is_active"
               control={control}

@@ -25,7 +25,7 @@ const EmployeList = () => {
       <TableContainer>
         <Table
           border="1px"
-          borderRadius="10px"
+          rounded="md"
           borderColor="gray.200"
           variant="simple"
         >
