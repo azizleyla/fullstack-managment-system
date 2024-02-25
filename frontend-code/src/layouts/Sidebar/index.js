@@ -3,9 +3,6 @@ import { Link, NavLink } from "react-router-dom";
 import { List, ListIcon, ListItem, Text } from "@chakra-ui/react";
 import { sidebarLinks } from "../../utils/constants";
 
-
-
-
 const Sidebar = ({ isOpen }) => {
     return (
         <>

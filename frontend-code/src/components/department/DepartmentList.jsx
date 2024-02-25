@@ -1,4 +1,9 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
+import AlertDialogBox from "../shared/AlertDialog";
+import GeneralSkeleton from "../shared/GeneralSkeleton";
+import Pagination from "components/shared/Pagination";
+import AddDepartmentModal from "../modal/AddDepartmentModal";
+import useSWR from "swr";
 import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import {
   Button,
@@ -6,7 +11,6 @@ import {
   Flex,
   HStack,
   Input,
-  Select,
   Spacer,
   Table,
   TableContainer,
@@ -17,47 +21,16 @@ import {
   Tr,
   useDisclosure,
 } from "@chakra-ui/react";
+import axios from "axios";
 import { Switch } from "@chakra-ui/react";
 import { Text } from "@chakra-ui/react";
-import AlertDialogBox from "../common/AlertDialog";
-import AddDepartmentModal from "../modal/AddDepartmentModal";
-import useSWR from "swr";
-import axios from "axios";
-import GeneralSkeleton from "../common/GeneralSkeleton";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
-import {
-  Previous,
-  Paginator,
-  PageGroup,
-  Page,
-  Next,
-  generatePages,
-  Container,
-} from "chakra-paginator";
-import ReactPaginate from "react-paginate";
-import { initialValues } from "../../utils/helper";
+import { initialValues } from "utils/helper";
+import ShowEntries from "components/shared/ShowEntries";
+import { AddButton } from "components/shared";
 
 const baseUrl = process.env.REACT_APP_BASE_URL;
-
-const normalStyles = {
-  bg: "#fff",
-  borderRadius: 0,
-  border: "1px solid #e6ebf1",
-  padding: "0.65rem 0.95rem",
-};
-
-const activeStyles = {
-  ...normalStyles,
-  bg: "#3366FF",
-  color: "#fff",
-  _hover: {
-    bg: "#3366FF",
-  },
-};
-const seperatorStyles = {
-  bg: "#fff",
-};
 
 const DepartmentList = () => {
   const deleteModal = useDisclosure();
@@ -65,7 +38,7 @@ const DepartmentList = () => {
   const [selectedDep, setSelectedDep] = useState(initialValues());
   const [curPage, setCurPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(null);
 
   const {
     data: departments,
@@ -97,6 +70,7 @@ const DepartmentList = () => {
   const handlePageClick = (page) => {
     setCurPage(page);
   };
+
   const handleDelete = async () => {
     try {
       if (allChecked || isIndeterminate) {
@@ -137,10 +111,13 @@ const DepartmentList = () => {
     }
   };
 
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-    setCurPage(1);
-  };
+  const handleSearch = useCallback(
+    (e) => {
+      setSearchQuery(e.target.value);
+      setCurPage(1);
+    },
+    [searchQuery],
+  );
 
   if (error) return <p>Error loading data</p>;
   if (isLoading) return <GeneralSkeleton />;
@@ -168,33 +145,19 @@ const DepartmentList = () => {
             </Button>
           )}
 
-          <Button
-            _hover={{ opacity: "0.7" }}
-            onClick={() => {
-              addModal.onOpen();
-              setSelectedDep(initialValues());
-            }}
-            fontSize="14px"
-            color="white"
-            bg="#184780"
-            size="md"
-          >
-            Add Department
-          </Button>
+          <AddButton
+            isRedirect={false}
+            text="Add Department"
+            addModal={addModal}
+            setSelectedFunc={setSelectedDep}
+          />
         </Flex>
         <Flex alignItems="center" my="20px">
-          <Text mr={2}>Show</Text>
-          <Select onChange={(e) => setLimit(e.target.value)}>
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </Select>
-          <Text ml={2}>entries</Text>
+          <ShowEntries limit={limit} setLimit={setLimit} />
           <Spacer />
           {/* <Box>aa</Box> */}
           <Input
-            onChange={(e) => handleSearch(e)}
+            onKeyDown={(e) => handleSearch(e)}
             borderRadius="5px"
             width="180px"
             focusBorderColor="blue.300"
@@ -300,6 +263,7 @@ const DepartmentList = () => {
             ))}
           </Tbody>
         </Table>
+
         <Flex my={5} alignItems="center">
           <Text>
             Showing page {departments.current_page} of{" "}
@@ -307,33 +271,11 @@ const DepartmentList = () => {
           </Text>
           <Spacer />
           <div className="pagination-container">
-            <Paginator
-              activeStyles={activeStyles}
-              currentPage={curPage}
-              // innerLimit={innerLimit}
-              // isDisabled={isPaginatorDisabled}
-              normalStyles={normalStyles}
-              onPageChange={handlePageClick}
-              // outerLimit={outerLimit}
-              pagesQuantity={departments.last_page}
-              separatorStyles={seperatorStyles}
-            >
-              <Previous
-                _hover={{ borderRadius: "0", bg: "#E2E8F0" }}
-                bg="white"
-                borderLeftRadius="0"
-              >
-                Previous
-                {/* Or an icon from `react-icons` */}
-              </Previous>
-              <PageGroup isInline align="center" />
-              <Next
-                _hover={{ borderRadius: "0", bg: "#E2E8F0" }}
-                bg="white"
-              >
-                Next
-              </Next>
-            </Paginator>
+            <Pagination
+              curPage={curPage}
+              lastPage={departments.last_page}
+              handlePageClick={handlePageClick}
+            />
           </div>
         </Flex>
       </TableContainer>

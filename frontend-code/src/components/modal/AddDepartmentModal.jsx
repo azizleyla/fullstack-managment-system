@@ -146,7 +146,6 @@ const AddDepartmentModal = ({
             />
           </form>
         </ModalBody>
-
         <ModalFooter>
           <Button
             {...CloseBtnStyle}
@@ -175,3 +174,4 @@ const AddDepartmentModal = ({
 };
 
 export default AddDepartmentModal;
+
