@@ -1,12 +1,16 @@
-import React, { Suspense, useCallback, useEffect, useState } from "react";
-import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
+import React, { Suspense, useCallback, useState } from "react";
+import { DeleteIcon, EditIcon, SearchIcon } from "@chakra-ui/icons";
 import {
+  Box,
   Button,
   Checkbox,
   Flex,
   HStack,
   Input,
+  InputGroup,
+  InputRightAddon,
   Spacer,
+  Stack,
   Table,
   TableContainer,
   Tbody,
@@ -14,6 +18,7 @@ import {
   Th,
   Thead,
   Tr,
+  VStack,
   useDisclosure,
 } from "@chakra-ui/react";
 import { Switch } from "@chakra-ui/react";
@@ -25,12 +30,13 @@ import GeneralSkeleton from "../shared/GeneralSkeleton";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import { initialValues } from "utils/helper";
-
 import Pagination from "components/shared/Pagination";
 import ShowEntries from "components/shared/ShowEntries";
-import { Link, useNavigate, useRoutes } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AddButton } from "components/shared";
-
+import { FormTitle } from "components/shared";
+import moment from "moment";
+import { LuArrowDownUp, LuImport } from "react-icons/lu";
 const baseUrl = process.env.REACT_APP_BASE_URL;
 
 const DepartmentList = () => {
@@ -42,8 +48,14 @@ const DepartmentList = () => {
   const [searchQuery, setSearchQuery] = useState(null);
 
   const { data, error, isLoading, mutate } = useSWR(
-    `${baseUrl}employees/index?page=${curPage}&limit=${limit}`,
+    `${baseUrl}employees/index?${
+      searchQuery
+        ? `search&query=${searchQuery}&page=${curPage}`
+        : `page=${curPage}`
+    }&limit=${limit}`,
+    { suspense: true },
   );
+
   const employees = data?.employees;
   const navigate = useNavigate();
   const [checkedItems, setCheckedItems] = useState(
@@ -98,6 +110,11 @@ const DepartmentList = () => {
     }
   };
 
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    setCurPage(1);
+  };
+
   if (error) return <p>Error loading data</p>;
   if (isLoading) return <GeneralSkeleton />;
 
@@ -108,9 +125,7 @@ const DepartmentList = () => {
       </Text>
       <TableContainer padding="20px" borderRadius="13px" bgColor="white">
         <Flex alignItems="center" justifyContent="space-between">
-          <Text fontWeight="bold"  margin="20px 0">
-            Employee
-          </Text>
+          <FormTitle text="Employee" />
 
           {isShowDeleteBtn && (
             <Button
@@ -124,140 +139,180 @@ const DepartmentList = () => {
               Delete
             </Button>
           )}
-          <AddButton
-            isRedirect={true}
-            text="Add Employee"
-            addModal={addModal}
-            setSelectedFunc={setSelectedEmp}
-          />
+          <HStack>
+            <AddButton
+              isRedirect={true}
+              text="Add Employee"
+              addModal={addModal}
+              setSelectedFunc={setSelectedEmp}
+            />
+            <Button
+              onClick={() => navigate("/admin/userimport")}
+              display="flex"
+              gap="5px"
+              alignItems="center"
+              colorScheme="blue"
+              fontSize="15px"
+              fontWeight="normal"
+            >
+              <LuImport fontSize="19px" />
+              Import Employee List
+            </Button>
+          </HStack>
         </Flex>
         <Flex alignItems="center" my="20px">
-          
           <ShowEntries limit={limit} setLimit={setLimit} />
 
           <Spacer />
           {/* <Box>aa</Box> */}
-          <Input
-            borderRadius="5px"
-            width="180px"
-            focusBorderColor="blue.300"
-            size="md"
-            placeholder="Search..."
-          />
+          <Stack spacing={4}>
+            <InputGroup>
+              <Input
+                onKeyUp={(e) => handleSearch(e)}
+                borderRadius="5px"
+                width="180px"
+                focusBorderColor="blue.300"
+                size="md"
+                placeholder="Search..."
+              />
+              {/* <InputRightAddon>
+                <SearchIcon onClick={() => handleSearch} />
+              </InputRightAddon> */}
+            </InputGroup>
+          </Stack>
         </Flex>
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th color="#263871" width="16px">
-                No.
-              </Th>
-              <Th width="16px">
-                <Checkbox
-                  disabled={employees.data.length == 0}
-                  isChecked={checkedItems?.length > 0 ? allChecked : false}
-                  onChange={(e) =>
-                    setCheckedItems(
-                      employees.data.map(() => e.target.checked),
-                    )
-                  }
-                />
-              </Th>
-              <Th color="#263871">Employee Name</Th>
-              <Th color="#263871" width="40px">
-                Email
-              </Th>
-              <Th color="#263871" width="30px">
-                Department
-              </Th>
-              <Th color="#263871" width="40px">
-                Status
-              </Th>
-
-              <Th color="#263871" width="80px">
-                Actions
-              </Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {employees.data.map((item, index) => (
-              <Tr key={item.id}>
-                <Td>{index + 1}</Td>
-                <Td>
+        <Box overflowX="scroll">
+          <Table variant="simple">
+            <Thead>
+              <Tr>
+                <Th color="#263871" width="16px">
+                  No.
+                </Th>
+                <Th width="16px">
                   <Checkbox
-                    onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      const itemId = item.id;
-                      if (isChecked) {
-                        // If the checkbox is checked, add the item ID to selectedIds
-                        setSelectedIds((prevSelectedIds) => [
-                          ...prevSelectedIds,
-                          itemId,
-                        ]);
-                      } else {
-                        // If the checkbox is unchecked, remove the item ID from selectedIds
-                        setSelectedIds((prevSelectedIds) =>
-                          prevSelectedIds.filter((id) => id !== itemId),
-                        );
-                      }
-
-                      setCheckedItems([
-                        ...checkedItems.slice(0, index),
-                        e.target.checked,
-                        ...checkedItems.slice(index + 1),
-                      ]);
-                    }}
-                    // isChecked={checkedItems[index]}
-                  />{" "}
-                </Td>
-                <Td>
-                  {item.firstname} {item.lastname}
-                </Td>
-                <Td>{item.email}</Td>
-                <Td>{item.department_name}</Td>
-                {/* <Td>{item.created_date}</Td> */}
-
-                <Td>
-                  <Switch
-                    onChange={(e) => handleChange(e, item.id)}
-                    isChecked={item.is_active}
-                    size="md"
+                    disabled={employees.data.length == 0}
+                    isChecked={
+                      checkedItems?.length > 0 ? allChecked : false
+                    }
+                    onChange={(e) =>
+                      setCheckedItems(
+                        employees.data.map(() => e.target.checked),
+                      )
+                    }
                   />
-                </Td>
-                <Td>
-                  <HStack>
-                    <Button
-                      onClick={() => {
-                        addModal.onOpen();
-                        setSelectedEmp(item);
-                        navigate(`/admin/employee/${item.id}`);
-                      }}
-                      border="1px"
-                      borderColor="#ccc"
-                      padding="3px 5px"
-                      bgColor="transparent"
-                    >
-                      <EditIcon color="#3368FF" />
-                    </Button>
+                </Th>
+                <Th color="#263871">
+                  Employee Name
+                  <LuArrowDownUp />
+                </Th>
+                <Th color="#263871" width="40px">
+                  Email
+                </Th>
+                <Th color="#263871" width="30px">
+                  Department
+                </Th>
+                <Th color="#263871" width="40px">
+                  Register Date
+                </Th>
+                <Th color="#263871" width="40px">
+                  Status
+                </Th>
 
-                    <Button
-                      padding="3px 5px"
-                      border="1px"
-                      borderColor="#ccc"
-                      bgColor="transparent"
-                      onClick={() => {
-                        deleteModal.onOpen();
-                        setSelectedEmp(item);
-                      }}
-                    >
-                      <DeleteIcon color="red" />
-                    </Button>
-                  </HStack>
-                </Td>
+                <Th color="#263871" width="80px">
+                  Actions
+                </Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {employees.data.map((item, index) => (
+                <Tr key={item.id}>
+                  <Td>{index + 1}</Td>
+                  <Td>
+                    <Checkbox
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        const itemId = item.id;
+                        if (isChecked) {
+                          // If the checkbox is checked, add the item ID to selectedIds
+                          setSelectedIds((prevSelectedIds) => [
+                            ...prevSelectedIds,
+                            itemId,
+                          ]);
+                        } else {
+                          // If the checkbox is unchecked, remove the item ID from selectedIds
+                          setSelectedIds((prevSelectedIds) =>
+                            prevSelectedIds.filter((id) => id !== itemId),
+                          );
+                        }
 
+                        setCheckedItems([
+                          ...checkedItems.slice(0, index),
+                          e.target.checked,
+                          ...checkedItems.slice(index + 1),
+                        ]);
+                      }}
+                      // isChecked={checkedItems[index]}
+                    />{" "}
+                  </Td>
+                  <Td>
+                    {item.firstname} {item.lastname}
+                  </Td>
+                  <Td>{item.email}</Td>
+                  <Td>{item.department_name}</Td>
+                  <Td>
+                    <Text
+                      fontWeight="medium"
+                      fontSize="13px"
+                      bg="#D9F6E5"
+                      color="#0DCD94"
+                      p="5px 10px"
+                      rounded="lg"
+                    >
+                      {moment(item.created_at).format("ll")}
+                    </Text>
+                  </Td>
+                  <Td>
+                    <Switch
+                      onChange={(e) => handleChange(e, item.id)}
+                      isChecked={item.is_active}
+                      size="md"
+                    />
+                  </Td>
+                  <Td>
+                    <HStack>
+                      <Button
+                        onClick={() => {
+                          addModal.onOpen();
+                          setSelectedEmp(item);
+                          navigate(`/admin/employee/${item.id}`);
+                        }}
+                        border="1px"
+                        borderColor="#ccc"
+                        padding="3px 5px"
+                        bgColor="transparent"
+                      >
+                        <EditIcon color="#3368FF" />
+                      </Button>
+
+                      <Button
+                        padding="3px 5px"
+                        border="1px"
+                        borderColor="#ccc"
+                        bgColor="transparent"
+                        onClick={() => {
+                          deleteModal.onOpen();
+                          setSelectedEmp(item);
+                        }}
+                      >
+                        <DeleteIcon color="red" />
+                      </Button>
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
         <Flex my={5} alignItems="center">
           <Text>
             Showing page {employees.current_page} of {employees.last_page}

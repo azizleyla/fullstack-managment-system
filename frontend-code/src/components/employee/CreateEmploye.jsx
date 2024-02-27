@@ -1,31 +1,23 @@
+import React, { Suspense, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { FormTitle, GeneralSkeleton, Tags } from "components/shared";
 import {
   Box,
   Button,
-  ButtonGroup,
   FormLabel,
   Grid,
   GridItem,
   Input,
   Select,
-  Switch,
-  Tag,
-  TagCloseButton,
-  TagLabel,
   Text,
 } from "@chakra-ui/react";
 import { yupResolver } from "@hookform/resolvers/yup";
-import axios from "axios";
-import { AddButton } from "components/shared";
-import FormTitle from "components/shared/FormTitle";
-import Tags from "components/shared/Tags";
-import React, { Suspense, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Form, useNavigate, useParams, useRoutes } from "react-router-dom";
 import { toast } from "react-toastify";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import * as yup from "yup";
-
-const baseUrl = process.env.REACT_APP_BASE_URL;
+import axios from "axios";
+import { baseUrl } from "utils/constants";
 
 const schema = yup
   .object({
@@ -50,9 +42,8 @@ const CreateEmploye = () => {
     resolver: yupResolver(schema),
   });
 
-  const [timezone, setTimeZone] = useState(null);
   const [langTags, setLangTags] = useState([]);
-  const [tags, setTags] = useState([]);
+  const [skillTags, setSkillTags] = useState([]);
   const [langValue, setLangValue] = useState("");
 
   const [tagValue, setTagValue] = useState("");
@@ -62,28 +53,26 @@ const CreateEmploye = () => {
 
   var aryIanaTimeZones = Intl.supportedValuesOf("timeZone");
 
-  const { data, error, isLoading, mutate } = useSWR(
-    `${baseUrl}employees/index`,
+  const { data, error, isLoading } = useSWR(
+    id ? `${baseUrl}employees/${id}` : null,
   );
-  const selectedEmp = data?.employees?.data?.find(
-    (x) => x.id == Number(id),
-  );
+
+  let employee = data?.employee;
 
   useEffect(() => {
-    if (selectedEmp) {
-      reset(selectedEmp);
+    if (employee) {
+      reset(employee);
     }
-  }, [selectedEmp]);
+  }, [employee]);
 
   const onSubmit = async (data) => {
-    let skills = tags.map((item) => item.value);
+    let skills = skillTags.map((item) => item.value);
     let langs = langTags.map((item) => item.value);
 
     let dataObj = {
       ...data,
       langs,
       skills,
-      timezone: timezone,
     };
     try {
       if (id) {
@@ -92,7 +81,7 @@ const CreateEmploye = () => {
         await axios.post(`${baseUrl}employees/store`, dataObj);
       }
       navigate("/admin/employee-list");
-      mutate();
+      mutate(`${baseUrl}employees/index`);
       window.location.reload();
     } catch (error) {
       if (error && error.response.data) {
@@ -101,68 +90,44 @@ const CreateEmploye = () => {
     }
   };
 
-  const handleKeyUpLangTags = (e) => {
+  const handleKeyUp = (e, type) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      // Prevent adding empty tags
-      if (langValue.trim() !== "") {
-        setLangTags([
-          ...langTags,
-          { value: langValue.trim(), id: crypto.randomUUID() },
-        ]);
-        setLangValue("");
+      if (type == "skill") {
+        if (tagValue.trim() !== "") {
+          setSkillTags((prev) => [
+            ...prev,
+            { value: tagValue.trim(), id: crypto.randomUUID() },
+          ]);
+          setTagValue("");
+        }
+      } else {
+        if (langValue.trim() !== "") {
+          setLangTags((prev) => [
+            ...prev,
+            { value: langValue.trim(), id: crypto.randomUUID() },
+          ]);
+          setLangValue("");
+        }
       }
     }
   };
 
-  const handleKeyUp = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      // Prevent adding empty tags
-      if (tagValue.trim() !== "") {
-        setTags([
-          ...tags,
-          { value: tagValue.trim(), id: crypto.randomUUID() },
-        ]);
-        setTagValue("");
-      }
+  const deleteTag = (id, type) => {
+    if (type == "skill") {
+      const newTags = skillTags.filter((item) => item.id !== id);
+      setSkillTags(newTags);
+    } else {
+      const newTags = langTags.filter((item) => item.id !== id);
+      setLangTags(newTags);
     }
-  };
-
-  // const handleKeyUp = () => {
-  //   if (e.key === "Enter") {
-  //     e.preventDefault();
-  //     // Prevent adding empty tags
-  //     if (value.trim() !== "") {
-  //       if (tags === undefined) {
-  //         setLangTags([
-  //           ...langTags,
-  //           { value: value.trim(), id: crypto.randomUUID() },
-  //         ]);
-  //       } else {
-  //         setTags([
-  //           ...tags,
-  //           { value: value.trim(), id: crypto.randomUUID() },
-  //         ]);
-  //       }
-  //       setValue("");
-  //     }
-  //   }
-  // }
-  const deleteTag = (id) => {
-    const newTags = tags.filter((item) => item.id !== id);
-    setTags(newTags);
-  };
-  const deleteLangTags = (id) => {
-    const newTags = langTags.filter((item) => item.id !== id);
-    setLangTags(newTags);
   };
 
   useEffect(() => {
-    const skillsArray = JSON.parse(selectedEmp?.skills ?? "[]");
-    const langsArray = JSON.parse(selectedEmp?.languages ?? "[]");
+    const skillsArray = JSON.parse(employee?.skills ?? "[]");
+    const langsArray = JSON.parse(employee?.languages ?? "[]");
 
-    if (selectedEmp) {
+    if (employee) {
       const updatedTags = skillsArray?.map((skill) => ({
         value: skill,
         id: crypto.randomUUID(),
@@ -171,21 +136,23 @@ const CreateEmploye = () => {
         value: lang,
         id: crypto.randomUUID(),
       }));
-      setTags(updatedTags);
+      setSkillTags(updatedTags);
       setLangTags(updatedLangTags);
     }
-  }, [id, selectedEmp]);
+  }, [id]);
 
   const defineFormType = () => {
-    return selectedEmp ? "Edit Employee" : "Create Employee";
+    return employee ? "Edit Employee" : "Create Employee";
   };
 
+  if (error) return <p>Error loading data....</p>;
+  if (isLoading) return <GeneralSkeleton />;
+
   return (
-    <Suspense fallback={<p>Loading..</p>}>
+    <Suspense fallback={<GeneralSkeleton />}>
       <Box bg="white" p="15px" borderRadius="7px" my="15px">
-        <Text fontSize="19px" mb={10} fontWeight="bold">
-          <FormTitle text={defineFormType()} />
-        </Text>
+        <FormTitle text={defineFormType()} />
+
         <form>
           <Grid templateColumns="repeat(6, 1fr)" gap={4}>
             <GridItem colSpan={3}>
@@ -283,11 +250,15 @@ const CreateEmploye = () => {
                 render={({ field }) => (
                   <>
                     <div className="tag-input-container">
-                      <Tags deleteTag={deleteLangTags} tags={langTags} />
+                      <Tags
+                        type="lang"
+                        deleteTag={deleteTag}
+                        tags={langTags}
+                      />
                       <input
                         value={langValue}
                         onChange={(e) => setLangValue(e.target.value)}
-                        onKeyUp={handleKeyUpLangTags}
+                        onKeyUp={(e) => handleKeyUp(e, "lang")}
                         style={{ border: "none", outline: "none" }}
                       />
                     </div>
@@ -305,12 +276,16 @@ const CreateEmploye = () => {
                 render={({ field }) => (
                   <>
                     <div className="tag-input-container">
-                      <Tags deleteTag={deleteTag} tags={tags} />
+                      <Tags
+                        type="skill"
+                        deleteTag={deleteTag}
+                        tags={skillTags}
+                      />
                       <input
                         onBlur={handleKeyUp}
                         value={tagValue}
                         onChange={(e) => setTagValue(e.target.value)}
-                        onKeyUp={handleKeyUp}
+                        onKeyUp={(e) => handleKeyUp(e, "skill")}
                         style={{ border: "none", outline: "none" }}
                       />
                     </div>
@@ -341,7 +316,9 @@ const CreateEmploye = () => {
                     placeholder="Select option"
                   >
                     {aryIanaTimeZones.map((item) => (
-                      <option value={item}>{item}</option>
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
                     ))}
                   </Select>
                 )}

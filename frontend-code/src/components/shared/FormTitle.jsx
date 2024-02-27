@@ -3,7 +3,7 @@ import React from "react";
 
 const FormTitle = ({ text }) => {
   return (
-    <Text fontWeight="bold" margin="20px 0" fontSize="18px">
+    <Text fontWeight="bold" margin="20px 0" fontSize="20px">
       {text}
     </Text>
   );

@@ -18,8 +18,7 @@ const AddButton = ({ isRedirect, text, setSelectedFunc, addModal }) => {
     return (
         <Button my="15px" display='flex' onClick={handleClick} _hover={{ opacity: "0.7" }}
             fontSize="14px"
-            color="white"
-            bg="#184780"
+            colorScheme='green'
             size="md">
             {text}
         </Button>

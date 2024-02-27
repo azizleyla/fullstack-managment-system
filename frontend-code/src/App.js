@@ -3,6 +3,7 @@ import React, { lazy, Suspense } from 'react';
 import './App.css';
 import Layout from './layouts';
 import GeneralSkeleton from 'components/shared/GeneralSkeleton';
+import UserImport from 'components/employee/UserImport';
 
 const DepartmentList = lazy(() => import('components/department/DepartmentList'))
 const EmployeeList = lazy(() => import('components/employee/EmployeList'));
@@ -20,6 +21,7 @@ function App() {
           <Route path="employee-list" element={<Suspense fallback={<GeneralSkeleton />}><EmployeeList /></Suspense>} />
           <Route path="create-employee" element={<Suspense fallback={<GeneralSkeleton />}><CreateEmployee /></Suspense>} />
           <Route path="employee/:id" element={<Suspense fallback={<GeneralSkeleton />}><CreateEmployee /></Suspense>} />
+          <Route path="userimport" element={<Suspense fallback={<GeneralSkeleton />}><UserImport /></Suspense>} />
 
         </Route>
       </Route >

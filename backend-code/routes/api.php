@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EmployeeController;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use PhpParser\Node\Expr\Empty_;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,5 +29,16 @@ Route::prefix('departments')
     Route::post('update/{department}',[DepartmentController::class,'update']);
     Route::post('update-status/{department}',[DepartmentController::class,'updateStatus']);
     Route::post('destroy-ids',[DepartmentController::class,'destroyIds']);
+
+});
+Route::prefix('employees')
+->group(function(){
+    Route::get('/index', [EmployeeController::class, 'index']);
+    Route::post('destroy/{employee}', [EmployeeController::class, 'destroy']);
+    Route::post('update-status/{employee}', [EmployeeController::class, 'updateStatus']);
+    Route::post('store', [EmployeeController::class, 'store']);
+    Route::get('/{employee}', [EmployeeController::class, 'show']);
+
+    Route::post('update/{employee}', [EmployeeController::class, 'update']);
 
 });
