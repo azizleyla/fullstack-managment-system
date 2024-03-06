@@ -46,6 +46,7 @@ const DepartmentList = () => {
   const [curPage, setCurPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchQuery, setSearchQuery] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc"); // Initialize sort direction state
 
   const { data, error, isLoading, mutate } = useSWR(
     `${baseUrl}employees/index?${
@@ -115,6 +116,31 @@ const DepartmentList = () => {
     setCurPage(1);
   };
 
+  const handleSort = () => {
+    if (data && data.employees) {
+      const sortedEmployees = [...data.employees.data];
+
+      // Determine sort direction based on current state
+      if (sortDirection === "asc") {
+        sortedEmployees.sort((a, b) =>
+          a.firstname.localeCompare(b.firstname),
+        );
+        setSortDirection("desc"); // Update sort direction state
+      } else {
+        sortedEmployees.sort((a, b) =>
+          b.firstname.localeCompare(a.firstname),
+        );
+        setSortDirection("asc"); // Update sort direction state
+      }
+
+      // Create a new object with sorted data and update using mutate
+      const sortedData = {
+        ...data,
+        employees: { ...data.employees, data: sortedEmployees },
+      };
+      mutate(sortedData, false); // Set revalidate to false to prevent re-fetching data
+    }
+  };
   if (error) return <p>Error loading data</p>;
   if (isLoading) return <GeneralSkeleton />;
 
@@ -201,7 +227,7 @@ const DepartmentList = () => {
                     }
                   />
                 </Th>
-                <Th color="#263871">
+                <Th width="100px" onClick={handleSort} color="#263871">
                   Employee Name
                   <LuArrowDownUp />
                 </Th>
